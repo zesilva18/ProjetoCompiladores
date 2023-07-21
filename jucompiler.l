@@ -23,9 +23,12 @@
     extern int flag_erro;
 %}
 
-id                   _|$|[A-Za-z]
-decimais              [1-9]
-numeros              [0-9]|_    
+barras ("\r"|"\n"|"\r\n")
+
+reserved ("++"|"--"|"null"|"Integer"|"System"|"for"|"abstract"|"continue"|"switch"|"assert"|"default"|"package"|"synchronized"|"do"|"goto"|"private"|"break"|"byte"|"case"|"catch"|"char"|"const"|"enum"|"extends"|"final"|"finally"|"float"|"implements"|"import"|"instanceof"|"interface"|"long"|"native"|"new"|"protected"|"short"|"strictfp"|"super"|"this"|"throw"|"throws"|"transient"|"try"|"volatile")
+
+exponte                 (e|E)("+"|"-")?([0-9]|[0-9]["_"0-9]*[0-9])+
+reallit					(([0-9]|[0-9]["_"0-9]*[0-9])+"."([0-9]|[0-9]["_"0-9]*[0-9])*{exponte}?)|(([0-9]|[0-9]["_"0-9]*[0-9])+{exponte})|("."([0-9]|[0-9]["_"0-9]*[0-9])+{exponte}?)
 
 %X COMENTARIOS STRINGS ERRORSTRLIT ERRORESC SL_COMMENT
 %%
@@ -126,40 +129,30 @@ numeros              [0-9]|_
 <STRINGS>\\[\\"]             {collum+=yyleng; strcat(buffer, yytext);}
 <STRINGS>\"                  {collum+=yyleng; BEGIN 0; if (error!=1){if(flag==1){printf("STRLIT(\"%s\")\n", buffer);}else if (flag==2) {strlit[0] = '"'; strcat(strlit, buffer); strcat(strlit, "\""); yylval.string=(char*)strdup(strlit);  bzero(strlit,sizeof(strlit)); return(STRLIT);}}}
 <STRINGS>\\.|\\              {error=1; if (yytext[1] != '\r') {printf("Line %d, col %d: invalid escape sequence (%s)\n", line, collum, yytext); collum+=yyleng;} else {printf("Line %d, col %d: invalid escape sequence (\\)\n", line, collum); collum+=yyleng;}}
-<STRINGS>"\r"|"\n"|"\r\n"    {error=1; printf("Line %d, col %d: unterminated string literal\n", nova_linha, nova_coluna); line++; collum=1; nova_coluna=0; BEGIN 0;}
+<STRINGS>{barras}     {error=1; printf("Line %d, col %d: unterminated string literal\n", nova_linha, nova_coluna); line++; collum=1; nova_coluna=0; BEGIN 0;}
 <STRINGS><<EOF>>             {error=1; printf("Line %d, col %d: unterminated string literal\n", nova_linha, nova_coluna); line++; collum=1; nova_coluna=0; BEGIN 0;}
 
 
 
-"++"|"--"|"null"|"Integer"|"System"|"for"|"abstract"|"continue"|"switch"|"assert"|"default"|"package"|"synchronized"|"do"|"goto"|"private"|"break"|"byte"|"case"|"catch"|"char"|"const"|"enum"|"extends"|"final"|"finally"|"float"|"implements"|"import"|"instanceof"|"interface"|"long"|"native"|"new"|"protected"|"short"|"strictfp"|"super"|"this"|"throw"|"throws"|"transient"|"try"|"volatile"   {if (flag==1){ printf("RESERVED(%s)\n", yytext);}else if(flag == 2){return(RESERVED);}collum += yyleng;}
+{reserved}   {if (flag==1){ printf("RESERVED(%s)\n", yytext);}else if(flag == 2){return(RESERVED);}collum += yyleng;}
 
-{decimais}+{numeros}*({decimais}|"0")                                                                                              {if (flag==1){ printf("INTLIT(%s)\n", yytext);}else if (flag==2) {yylval.string=(char*)strdup(yytext); return(INTLIT);}collum += yyleng;}
+[A-Za-z_\$][0-9A-Za-z_\$]*                                                                                                             {if (flag==1){printf("ID(%s)\n", yytext);}else if (flag==2) {yylval.string=(char*)strdup(yytext); return(ID);}collum += yyleng;}
 
-"."({numeros}*("_"*({decimais}|"0")+))+                                                                                            {if (flag==1){printf("REALLIT(%s)\n", yytext);}else if (flag==2) {yylval.string=(char*)strdup(yytext); return(REALLIT);}collum += yyleng;}
-ç
-"-"?(({decimais}+{numeros}*|"0")?({decimais}|"0"))+"."({numeros}*("_"*({decimais}|"0")+))*                                             {if (flag==1){printf("REALLIT(%s)\n", yytext);}else if (flag==2) {yylval.string=(char*)strdup(yytext); return(REALLIT);}collum += yyleng;}
+{reallit}                                                                                            {if (flag==1){printf("REALLIT(%s)\n", yytext);}else if (flag==2) {yylval.string=(char*)strdup(yytext); return(REALLIT);}collum += yyleng;}
 
-"-"?({decimais}+{numeros}*|"0"){decimais}*("E-"|"E+"|"e-"|"e+"|"e"|"E")({decimais}|"0"){numeros}*                                      {if (flag==1){printf("REALLIT(%s)\n", yytext);}else if (flag==2) {yylval.string=(char*)strdup(yytext); return(REALLIT);}collum += yyleng;} //numeros com exponencias
 
-"-"?({decimais}+{numeros}*|"0")("E-"|"E+"|"e-"|"e+"|"e"|"E")({decimais}|"0"){numeros}+"."({decimais}|"0"){numeros}*                    {if (flag==1){printf("REALLIT(%s)\n", yytext);}else if (flag==2) {yylval.string=(char*)strdup(yytext); return(REALLIT);}collum += yyleng;}
+[0-9]|[1-9]["_"0-9]*[0-9]                                                                                              {if (flag==1){ printf("INTLIT(%s)\n", yytext);}else if (flag==2) {yylval.string=(char*)strdup(yytext); return(INTLIT);}collum += yyleng;}
 
-"-"?(({decimais}+{numeros}*|"0")?({decimais}|"0"))*"."{numeros}*({decimais}|"0")("E-"|"E+"|"e-"|"e+"|"e"|"E"){numeros}+                {if (flag==1){printf("REALLIT(%s)\n", yytext);}else if (flag==2) {yylval.string=(char*)strdup(yytext); return(REALLIT);}collum += yyleng;}
-
-"-"?(({decimais}+{numeros}*|"0")?({decimais}|"0"))+"."({decimais}|"0")*("_"*{decimais}+)?("E-"|"E+"|"e-"|"e+"|"e"|"E"){numeros}+       {if (flag==1){printf("REALLIT(%s)\n", yytext);}else if (flag==2) {yylval.string=(char*)strdup(yytext); return(REALLIT);}collum += yyleng;}
-
-{id}({id}|{numeros})*                                                                                                              {if (flag==1){printf("ID(%s)\n", yytext);}else if (flag==2) {yylval.string=(char*)strdup(yytext); return(ID);}collum += yyleng;}
-
-{decimais}|0                                                                                                                       {if (flag==1){printf("INTLIT(%s)\n", yytext);}else if (flag==2) {yylval.string=(char*)strdup(yytext); return(INTLIT);}collum += yyleng;}
 
 "//"                           {BEGIN SL_COMMENT;collum = 1;line++;}
-<SL_COMMENT>"\r"|"\n"|"\r\n"   {BEGIN 0;}
+<SL_COMMENT>{barras}   {BEGIN 0;}
 <SL_COMMENT><<EOF>>            {BEGIN 0;}
 <SL_COMMENT>.                  ;   
 
 "/""*"                          {nova_linha = line;nova_coluna=collum; nova_linha2 = 0;collum += 2;BEGIN(COMENTARIOS);}
 <COMENTARIOS><<EOF>>            {line += nova_linha2; printf("Line %d, col %d: unterminated comment\n", nova_linha, nova_coluna); BEGIN(0);collum += yyleng;}
 <COMENTARIOS>"*""/"             {BEGIN(0); line += nova_linha2; collum+=2;}
-<COMENTARIOS>"\r"|"\n"|"\r\n"   {nova_linha2++;collum = 1;}
+<COMENTARIOS>{barras}   {nova_linha2++;collum = 1;}
 <COMENTARIOS>.                  {collum += yyleng;}
 
 "\f"|"\t"                                    {collum += yyleng;}
