@@ -129,8 +129,8 @@ reallit					(([0-9]|[0-9]["_"0-9]*[0-9])+"."([0-9]|[0-9]["_"0-9]*[0-9])*{exponte
 <STRINGS>\\[\\"]             {collum+=yyleng; strcat(buffer, yytext);}
 <STRINGS>\"                  {collum+=yyleng; BEGIN 0; if (error!=1){if(flag==1){printf("STRLIT(\"%s\")\n", buffer);}else if (flag==2) {strlit[0] = '"'; strcat(strlit, buffer); strcat(strlit, "\""); yylval.string=(char*)strdup(strlit);  bzero(strlit,sizeof(strlit)); return(STRLIT);}}}
 <STRINGS>\\.|\\              {error=1; if (yytext[1] != '\r') {printf("Line %d, col %d: invalid escape sequence (%s)\n", line, collum, yytext); collum+=yyleng;} else {printf("Line %d, col %d: invalid escape sequence (\\)\n", line, collum); collum+=yyleng;}}
-<STRINGS>{barras}     {error=1; printf("Line %d, col %d: unterminated string literal\n", nova_linha, nova_coluna); line++; collum=1; nova_coluna=0; BEGIN 0;}
-<STRINGS><<EOF>>             {error=1; printf("Line %d, col %d: unterminated string literal\n", nova_linha, nova_coluna); line++; collum=1; nova_coluna=0; BEGIN 0;}
+<STRINGS>{barras}            {error=1; printf("Line %d, col %d: unterminated string literal\n", nova_linha, nova_coluna); line++; collum=1; nova_coluna=0; buffer[0] = '\0'; BEGIN 0;}
+<STRINGS><<EOF>>             {error=1; printf("Line %d, col %d: unterminated string literal\n", nova_linha, nova_coluna); line++; collum=1; nova_coluna=0; buffer[0] = '\0'; BEGIN 0;}
 
 
 
@@ -151,7 +151,7 @@ reallit					(([0-9]|[0-9]["_"0-9]*[0-9])+"."([0-9]|[0-9]["_"0-9]*[0-9])*{exponte
 
 "/""*"                          {nova_linha = line;nova_coluna=collum; nova_linha2 = 0;collum += 2;BEGIN(COMENTARIOS);}
 <COMENTARIOS><<EOF>>            {line += nova_linha2; printf("Line %d, col %d: unterminated comment\n", nova_linha, nova_coluna); BEGIN(0);collum += yyleng;}
-<COMENTARIOS>"*""/"             {BEGIN(0); line += nova_linha2; collum+=2;}
+<COMENTARIOS>"*""/"             {line += nova_linha2; collum+=2; BEGIN(0); }
 <COMENTARIOS>{barras}   {nova_linha2++;collum = 1;}
 <COMENTARIOS>.                  {collum += yyleng;}
 
@@ -168,10 +168,14 @@ return 1;
 }
 
 void yyerror(char *s){
-    if(flag_erro == 1){
-            printf("Line %d, col %d: %s: %s\n", line, collum, s, yytext);
-    }
-    else{
-        printf("Line %d, col %d: %s: %s", erro_linha, erro_coluna, s, yytext);
+    if(strlen(buffer) > 1){
+        printf("Line %d, col %d: %s: \"%s\"\n", line, coluna_aux + (int) yyleng - 1, s, buffer);
+        buffer[0] = '\0';
+    }else{
+        if(yylineno == 1 && yytext[-1] != '\n'){
+            printf("Line %d, col %d: %s: %s\n", line, collum - (int) yyleng + 1, s, yytext);
+        }else{
+            printf("Line %d, col %d: %s: %s\n", line, collum - (int) yyleng,     s, yytext);
+        }
     }
 }
