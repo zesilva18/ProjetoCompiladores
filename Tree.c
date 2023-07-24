@@ -12,20 +12,26 @@ ast_tree *ast_node(char *token, char* value) { //criar arvore
     return node;
 }
 
-void add_childs(ast_tree *root, ast_tree* new) { //adicionar filhos
-    if (new == NULL) {
+void add_childs(ast_tree *root, ast_tree *son)
+{
+    if (son == NULL || root == NULL)
+    {
         return;
     }
-    if (root->son == NULL) {
-        root->son = new;
-    } else {
+    if (root->son == NULL)
+    {
+        root->son = son;
+    }
+    else
+    {
         ast_tree *temp = root->son;
-        while (temp->brother != NULL) {
+        while (temp->brother != NULL)
+        {
             temp = temp->brother;
         }
-        temp->brother = new;
+        temp->brother = son;
     }
-    new->father = root;
+    son->father = root;
 }
 
 void add_brother(ast_tree *brother, ast_tree *newbrother) { //adicionar irmaos
@@ -44,44 +50,34 @@ void add_brother(ast_tree *brother, ast_tree *newbrother) { //adicionar irmaos
     newbrother->father = brother->father;
 }
 
-void ast_print(ast_tree* ast,int level)
+void ast_print(ast_tree *AST, int n_pontos)
 {
-    //printf("estou aqui \n");
-    if (ast == NULL)
+    // printf("estou aqui \n");
+    if (AST == NULL)
     {
-        printf("A RAIZ ESTA A NULL\n");
+        return;
     }
-    for (int i = 0; i < level; i++)
-        printf(".");
-    
-    printf("%s", ast->type);
-    if (strcmp(ast->value, "") != 0)
+    if (strcmp(AST->type, "Semicolon") != 0)
     {
-        printf("(%s)\n", ast->value);
-    }else{
-        printf("\n");
-    }
+        for (int i = 0; i < n_pontos; i++)
+            printf(".");
 
-    if(ast->son != NULL){
-        ast_print(ast->son,level+2);
-    }
-    if(ast->brother != NULL){
-        ast_print(ast->brother,level);
-    }
-}
-int nrChilds (ast_tree* ast){
-    int count=0;
-    ast_tree* root = ast;
-
-    if(root->son==NULL || root ==NULL){
-        return 0;
-    }
-    else{
-        count++;
-        while (root->brother != NULL) {
-            count++;
-            root = root->brother;
+        printf("%s", AST->type);
+        if (strcmp(AST->value, "") != 0)
+        {
+            printf("(%s)\n", AST->value);
         }
-        return count;
+        else
+        {
+            printf("\n");
+        }
+    }
+    if (AST->son != NULL)
+    {
+        ast_print(AST->son, n_pontos + 2);
+    }
+    if (AST->brother != NULL)
+    {
+        ast_print(AST->brother, n_pontos);
     }
 }

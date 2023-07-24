@@ -163,10 +163,10 @@ extern int yydebug;
 #if ! defined YYSTYPE && ! defined YYSTYPE_IS_DECLARED
 union YYSTYPE
 {
-#line 39 "expr.y"
+#line 41 "expr.y"
 
 char* string;
-struct ast_tree* ast_tree;
+struct ast_tree* ast;
 
 #line 172 "y.tab.h"
 

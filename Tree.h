@@ -13,8 +13,8 @@ typedef struct ast_tree
     struct ast_tree *brother;
 }ast_tree;
 
-void add_childs(ast_tree *root, ast_tree* new);
+
 ast_tree *ast_node(char *token, char* value);
+void add_childs(ast_tree *father, ast_tree *son);
 void add_brother(ast_tree *brother, ast_tree* newbrother);
-void ast_print(ast_tree* ast,int level);
-int nrChilds (ast_tree* ast);
+void ast_print(ast_tree *AST, int n_pontos);
