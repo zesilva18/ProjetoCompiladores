@@ -1000,7 +1000,7 @@ do_action:	/* This label is used only to access EOF actions. */
 case 1:
 YY_RULE_SETUP
 #line 36 "jucompiler.l"
-{if (flag==1){printf("BOOLLIT(%s)\n",yytext);}else if (flag==2) {yylval.string=(char*)strdup(yytext); return(BOOLLIT);}collum += yyleng;}
+{collum += yyleng; if (flag==1){printf("BOOLLIT(%s)\n",yytext);}else if (flag==2) {yylval.string=(char*)strdup(yytext); return(BOOLLIT);}collum += yyleng;}
 	YY_BREAK
 case 2:
 YY_RULE_SETUP
@@ -1261,11 +1261,11 @@ case 53:
 /* rule 53 can match eol */
 YY_RULE_SETUP
 #line 132 "jucompiler.l"
-{error=1; printf("Line %d, col %d: unterminated string literal\n", nova_linha, nova_coluna); line++; collum=1; nova_coluna=0; BEGIN 0;}
+{error=1; printf("Line %d, col %d: unterminated string literal\n", nova_linha, nova_coluna); line++; collum=1; nova_coluna=0; buffer[0] = '\0'; BEGIN 0;}
 	YY_BREAK
 case YY_STATE_EOF(STRINGS):
 #line 133 "jucompiler.l"
-{error=1; printf("Line %d, col %d: unterminated string literal\n", nova_linha, nova_coluna); line++; collum=1; nova_coluna=0; BEGIN 0;}
+{error=1; printf("Line %d, col %d: unterminated string literal\n", nova_linha, nova_coluna); line++; collum=1; nova_coluna=0; buffer[0] = '\0'; BEGIN 0;}
 	YY_BREAK
 case 54:
 YY_RULE_SETUP
@@ -1319,7 +1319,7 @@ case YY_STATE_EOF(COMENTARIOS):
 case 62:
 YY_RULE_SETUP
 #line 154 "jucompiler.l"
-{BEGIN(0); line += nova_linha2; collum+=2;}
+{line += nova_linha2; collum+=2; BEGIN(0); }
 	YY_BREAK
 case 63:
 /* rule 63 can match eol */
@@ -2373,10 +2373,14 @@ return 1;
 }
 
 void yyerror(char *s){
-    if(flag_erro == 1){
-            printf("Line %d, col %d: %s: %s\n", line, collum, s, yytext);
-    }
-    else{
-        printf("Line %d, col %d: %s: %s", erro_linha, erro_coluna, s, yytext);
+    if(strlen(buffer) > 1){
+        printf("Line %d, col %d: %s: \"%s\"\n", line, nova_coluna + (int) yyleng - 1, s, buffer);
+        buffer[0] = '\0';
+    }else{
+        if(yylineno == 1 && yytext[-1] != '\n'){
+            printf("Line %d, col %d: %s: %s\n", line, collum - (int) yyleng + 1, s, yytext);
+        }else{
+            printf("Line %d, col %d: %s: %s\n", line, collum - (int) yyleng,     s, yytext);
+        }
     }
 }

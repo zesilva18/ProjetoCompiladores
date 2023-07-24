@@ -33,7 +33,7 @@ reallit					(([0-9]|[0-9]["_"0-9]*[0-9])+"."([0-9]|[0-9]["_"0-9]*[0-9])*{exponte
 %X COMENTARIOS STRINGS ERRORSTRLIT ERRORESC SL_COMMENT
 %%
 
-"true"|"false"                          {if (flag==1){printf("BOOLLIT(%s)\n",yytext);}else if (flag==2) {yylval.string=(char*)strdup(yytext); return(BOOLLIT);}collum += yyleng;}
+"true"|"false"                          {collum += yyleng; if (flag==1){printf("BOOLLIT(%s)\n",yytext);}else if (flag==2) {yylval.string=(char*)strdup(yytext); return(BOOLLIT);}collum += yyleng;}
 
 "&&"                                    {if (flag==1){printf("AND\n");}else if (flag==2) {return(AND);}collum += yyleng;}
 
@@ -169,7 +169,7 @@ return 1;
 
 void yyerror(char *s){
     if(strlen(buffer) > 1){
-        printf("Line %d, col %d: %s: \"%s\"\n", line, coluna_aux + (int) yyleng - 1, s, buffer);
+        printf("Line %d, col %d: %s: \"%s\"\n", line, nova_coluna + (int) yyleng - 1, s, buffer);
         buffer[0] = '\0';
     }else{
         if(yylineno == 1 && yytext[-1] != '\n'){
