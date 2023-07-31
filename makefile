@@ -1,4 +1,4 @@
-chmall: jucompiler.l expr.y Tree.c Tree.h
+chmall: jucompiler.l jucompiler.y
 	flex jucompiler.l
-	yacc -d -v expr.y		
-	cc -o expr y.tab.c lex.yy.c Tree.c
+	yacc -d -v jucompiler.y		
+	cc -o jucompiler y.tab.c lex.yy.c

@@ -1,4 +1,5 @@
 
+
 %{
     #include "y.tab.h"
     int coluna = 1;
@@ -87,8 +88,6 @@ NEWLINE "\n"|"\r"|"\r\n"
 <SINGLE_LINE_COMMENT>{NEWLINE} {BEGIN 0;}
 <SINGLE_LINE_COMMENT><<EOF>>   {BEGIN 0;}
 <SINGLE_LINE_COMMENT>.         ;
-
-
 
 "/""*"                      {linha_aux = yylineno;coluna_aux=coluna;linha_aux_2 = 0;coluna += 2;BEGIN(COMMENT);}
 <COMMENT><<EOF>>            {yylineno += linha_aux_2; printf("Line %d, col %d: unterminated comment\n", linha_aux, coluna_aux); BEGIN(0);coluna += yyleng;}
