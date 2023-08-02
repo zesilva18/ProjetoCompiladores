@@ -16,19 +16,21 @@
     
 %}
 
-barras "\n"|"\r"|"\r\n"
-
-reserved "switch"|"assert"|"default"|"package"|"finally"|"float"|"implements"|"import"|"instanceof"|"interface"|"long"|"native"|"new"|"synchronized"|"do"|"goto"|"private"|"break"|"++"|"--"|"null"|"Integer"|"System"|"for"|"abstract"|"continue"|"byte"|"case"|"catch"|"char"|"const"|"enum"|"extends"|"final"|"protected"|"short"|"strictfp"|"transient"|"try"|"volatile"|"super"|"this"|"throw"|"throws"
-
-
-exponte                 (e|E)("+"|"-")?([0-9]|[0-9]["_"0-9]*[0-9])+
-reallit					(([0-9]|[0-9]["_"0-9]*[0-9])+"."([0-9]|[0-9]["_"0-9]*[0-9])*{exponte}?)|(([0-9]|[0-9]["_"0-9]*[0-9])+{exponte})|("."([0-9]|[0-9]["_"0-9]*[0-9])+{exponte}?)
+ID  ([A-Za-z]|[_$])([0-9]|[_$]|[A-Za-z])*
+digitos  [0-9]+
+nonzeros [1-9]
+expoentes   ((E|e)[+-]?{digitos}([0-9]|_)*)
+reservadas "switch"|"assert"|"default"|"package"|"finally"|"float"|"implements"|"import"|"instanceof"|"interface"|"long"|"native"|"new"|"synchronized"|"do"|"goto"|"private"|"break"|"++"|"--"|"null"|"Integer"|"System"|"for"|"abstract"|"continue"|"byte"|"case"|"catch"|"char"|"const"|"enum"|"extends"|"final"|"protected"|"short"|"strictfp"|"transient"|"try"|"volatile"|"super"|"this"|"throw"|"throws"
+REALLIT (({digitos}*("_"*{digitos})+"."?{expoentes})|({digitos}"."{digitos}?{expoentes}?)|("."{digitos}{expoentes}?)|({digitos}{expoentes})|({digitos}*("_"*{digitos}){expoentes}))|(({digitos}*("_"*{digitos})*"."("_"*{digitos})+({expoentes})?)|({digitos}*("_"*{digitos})+"."))                      
+INTLIT {nonzeros}(("_"|{digitos})*{digitos})?|"0"
+SPACE " "
+NEWLINE "\n"|"\r"|"\r\n"
 
 %X COMMENT STRLLIT SINGLE_LINE_COMMENT
 
 %%  
 
-{reserved}                {coluna += yyleng;     if(flag == 1){printf("RESERVED(%s)\n", yytext);} else if(flag == 2){return (RESERVED);}  }
+{reservadas}                {coluna += yyleng;     if(flag == 1){printf("RESERVED(%s)\n", yytext);} else if(flag == 2){return (RESERVED);}  }
 
 "true"|"false"              {coluna += yyleng;     if(flag == 1){printf("BOOLLIT(%s)\n", yytext);}  else if (flag == 2){yylval.string=(char*)strdup(yytext);return(BOOLLIT);}coluna += yyleng;}
 "&&"                        {coluna += yyleng;     if(flag == 1){printf("AND\n");}                  else if (flag == 2){return(AND);}       }
@@ -75,22 +77,22 @@ reallit					(([0-9]|[0-9]["_"0-9]*[0-9])+"."([0-9]|[0-9]["_"0-9]*[0-9])*{exponte
 "while"                     {coluna += yyleng;     if(flag == 1){printf("WHILE\n");}                else if (flag == 2){return(WHILE);}     }
 
 
-[A-Za-z_\$][0-9A-Za-z_\$]*                        {coluna += yyleng; if(flag == 1){printf("ID(%s)\n", yytext);}           else if (flag == 2){yylval.string=(char*)strdup(yytext);return(ID);}}
+{ID}                        {coluna += yyleng; if(flag == 1){printf("ID(%s)\n", yytext);}           else if (flag == 2){yylval.string=(char*)strdup(yytext);return(ID);}}
 
-{reallit}                   {coluna += yyleng; if(flag == 1){printf("REALLIT(%s)\n", yytext);}      else if (flag == 2){yylval.string=(char*)strdup(yytext);return(REALLIT);}}
+{REALLIT}                   {coluna += yyleng; if(flag == 1){printf("REALLIT(%s)\n", yytext);}      else if (flag == 2){yylval.string=(char*)strdup(yytext);return(REALLIT);}}
 
-[0-9]|[1-9]["_"0-9]*[0-9]                    {coluna += yyleng; if(flag == 1){printf("INTLIT(%s)\n", yytext);}       else if (flag == 2){yylval.string=(char*)strdup(yytext);return(INTLIT);}}             
+{INTLIT}                    {coluna += yyleng; if(flag == 1){printf("INTLIT(%s)\n", yytext);}       else if (flag == 2){yylval.string=(char*)strdup(yytext);return(INTLIT);}}             
 
 
 "//"                           {BEGIN SINGLE_LINE_COMMENT;coluna = 1;yylineno++;}
-<SINGLE_LINE_COMMENT>{barras} {BEGIN 0;}
+<SINGLE_LINE_COMMENT>{NEWLINE} {BEGIN 0;}
 <SINGLE_LINE_COMMENT><<EOF>>   {BEGIN 0;}
 <SINGLE_LINE_COMMENT>.         ;
 
 "/""*"                      {linha_aux = yylineno;coluna_aux=coluna;linha_aux_2 = 0;coluna += 2;BEGIN(COMMENT);}
 <COMMENT><<EOF>>            {yylineno += linha_aux_2; printf("Line %d, col %d: unterminated comment\n", linha_aux, coluna_aux); BEGIN(0);coluna += yyleng;}
 <COMMENT>"*""/"             {yylineno += linha_aux_2; coluna += 2; BEGIN(0);}
-<COMMENT>{barras}          {linha_aux_2++;           coluna = 1;}
+<COMMENT>{NEWLINE}          {linha_aux_2++;           coluna = 1;}
 <COMMENT>.                  {coluna += yyleng;}
 
 \"                           {coluna_aux = coluna; coluna += 1; linha_aux = yylineno; BEGIN STRLLIT; buffer[0] = '\0'; error = 0;}
@@ -102,12 +104,12 @@ reallit					(([0-9]|[0-9]["_"0-9]*[0-9])+"."([0-9]|[0-9]["_"0-9]*[0-9])*{exponte
 <STRLLIT>\\[\\"]             {coluna+=yyleng; strcat(buffer, yytext);}
 <STRLLIT>\"                  {coluna+=yyleng; BEGIN 0;if (error!=1){ if(flag==1) {printf("STRLLIT(\"%s\")\n", buffer);} else if (flag == 2) {buffer_envio[0] = '\"';strcat(buffer_envio,buffer);strcat(buffer_envio,"\"");yylval.string = (char *)strdup(buffer_envio); bzero(buffer_envio,sizeof(buffer_envio));return(STRLIT);}}}
 <STRLLIT>\\.|\\              {error=1; if (yytext[1] != '\r') {printf("Line %d, col %d: invalid escape sequence (%s)\n", yylineno, coluna, yytext); coluna+=yyleng;} else {printf("Line %d, col %d: invalid escape sequence (\\)\n", yylineno, coluna); coluna+=yyleng;}}
-<STRLLIT>{barras}           {error=1; printf("Line %d, col %d: unterminated string literal\n", linha_aux, coluna_aux); yylineno++; coluna=1; coluna_aux=0;buffer[0] = '\0';BEGIN 0;}
+<STRLLIT>{NEWLINE}           {error=1; printf("Line %d, col %d: unterminated string literal\n", linha_aux, coluna_aux); yylineno++; coluna=1; coluna_aux=0;buffer[0] = '\0';BEGIN 0;}
 <STRLLIT><<EOF>>             {error=1; printf("Line %d, col %d: unterminated string literal\n", linha_aux, coluna_aux); yylineno++; coluna=1; coluna_aux=0;buffer[0] = '\0'; BEGIN 0;}
 
 "\f"|"\t"                    {coluna += yyleng;}
-" "                      {coluna += yyleng;}
-{barras}                    {yylineno++;coluna = 1;}
+{SPACE}                      {coluna += yyleng;}
+{NEWLINE}                    {yylineno++;coluna = 1;}
 .                            {printf("Line %d, col %d: illegal character (%s)\n",yylineno,coluna, yytext);coluna += yyleng;}
 
 
