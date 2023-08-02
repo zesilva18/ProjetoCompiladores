@@ -36,28 +36,35 @@ ast_tree *criar_no(char *token, char* value) { //criar arvore
     node->value = value;
     node->pai = NULL;
     node->irmao = NULL;
+    node->filho = NULL;
 
     return node;
 }
 
 void criar_filhos(ast_tree *root, ast_tree *filho)
 {
-    if (filho == NULL || root == NULL)
+    if (filho == NULL)
     {
         return;
     }
+
+    if (root == NULL)
+    {
+        return;
+    }
+
     if (root->filho == NULL)
     {
         root->filho = filho;
     }
     else
     {
-        ast_tree *temp = root->filho;
-        while (temp->irmao != NULL)
+        ast_tree *aux = root->filho;
+        while (aux->irmao != NULL)
         {
-            temp = temp->irmao;
+            aux = aux->irmao;
         }
-        temp->irmao = filho;
+        aux->irmao = filho;
     }
     filho->pai = root;
 }
@@ -68,64 +75,66 @@ void criar_irmao(ast_tree *irmao, ast_tree *newirmao) { //adicionar irmaos
     }
     if (irmao == NULL) {
         return;
-    } else {
-        ast_tree *temp = irmao;
-        while (temp->irmao != NULL) {
-            temp = temp->irmao;
+    }
+
+    else {
+        ast_tree *aux = irmao;
+        while (aux->irmao != NULL) {
+            aux = aux->irmao;
         }
-        temp->irmao = newirmao;
+        aux->irmao = newirmao;
     }
     newirmao->pai = irmao->pai;
 }
 
-void printar_arvore(ast_tree *AST, int n_pontos)
+void printar_arvore(ast_tree *tree, int n_pontos)
 {
-    if (AST == NULL)
+    if (tree == NULL)
     {
         return;
     }
-    if (strcmp(AST->tipo, "Semicolon") != 0)
+    if (strcmp(tree->tipo, "Semicolon") != 0)
     {
         for (int i = 0; i < n_pontos; i++)
             printf(".");
 
-        printf("%s", AST->tipo);
-        if (strcmp(AST->value, "") != 0)
+        printf("%s", tree->tipo);
+        if (strcmp(tree->value, "") != 0)
         {
-            printf("(%s)\n", AST->value);
+            printf("(%s)\n", tree->value);
         }
         else
         {
             printf("\n");
         }
     }
-    if (AST->filho != NULL)
+    if (tree->filho != NULL)
     {
-        printar_arvore(AST->filho, n_pontos + 2);
+        printar_arvore(tree->filho, n_pontos + 2);
     }
-    if (AST->irmao != NULL)
+    if (tree->irmao != NULL)
     {
-        printar_arvore(AST->irmao, n_pontos);
+        printar_arvore(tree->irmao, n_pontos);
     }
 }
 
 //create function to free tree 
 
-void free_tree(ast_tree *AST)
+void free_tree(ast_tree *tree)
 {
-    if (AST == NULL)
+    if (tree == NULL)
     {
         return;
     }
-    if (AST->filho != NULL)
+    if (tree->filho != NULL)
     {
-        free_tree(AST->filho);
+        free_tree(tree->filho);
     }
-    if (AST->irmao != NULL)
+    if (tree->irmao != NULL)
     {
-        free_tree(AST->irmao);
+        free_tree(tree->irmao);
     }
-    free(AST);
+    free(tree);
 }
 
 void mantertipo(ast_tree* no,char* tipo){
@@ -279,7 +288,9 @@ Statement:  LBRACE Statement StatementAux RBRACE	         {
                                                                 if($5 == NULL || strcmp($5->tipo,"Semicolon")==0){
                                                                     criar_filhos($$,criar_no("Block",""));
                                                                     criar_filhos($$,criar_no("Block",""));
-                                                                }else{
+                                                                }
+                                                                
+                                                                else{
                                                                     criar_filhos($$,$5);
                                                                     criar_filhos($$,criar_no("Block",""));
                                                                 }
@@ -291,12 +302,12 @@ Statement:  LBRACE Statement StatementAux RBRACE	         {
                                                                 $$ = criar_no("If","");
                                                                 criar_filhos($$,$3);
                                                                 if($5 == NULL || strcmp($5->tipo,"Semicolon")==0){
-                                                                    criar_filhos($$,criar_no("Block","")); // addirmao(3,5)
+                                                                    criar_filhos($$,criar_no("Block",""));
                                                                 }else{
                                                                     criar_filhos($$,$5);
                                                                 }
                                                                 if($7 == NULL || strcmp($7->tipo,"Semicolon")==0){
-                                                                    criar_filhos($$,criar_no("Block","")); // addirmao(3,7)
+                                                                    criar_filhos($$,criar_no("Block",""));
                                                                 }else{
                                                                     criar_filhos($$,$7);
                                                                 }
