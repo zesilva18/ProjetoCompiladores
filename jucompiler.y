@@ -8,6 +8,7 @@
 struct ast_tree *root;
 struct ast_tree *methodParams;
 struct ast_tree *temp;
+struct ast_tree *aux;
 int flag = 1;
 
 char *tipo;
@@ -357,7 +358,7 @@ MethodInvocationAux_2: 						                 {$$ = NULL;}
 Assignment: ID ASSIGN Expr                                   {$$ = criar_no("Id", $1); criar_irmao($$,$3);}
 
 
-ParseArgs: PARSEINT LPAR ID LSQ Expr RSQ RPAR                {$$ = criar_no("ParseArgs","");criar_filhos($$, criar_no("Id", $3));criar_filhos($$, $5);}
+ParseArgs: PARSEINT LPAR ID LSQ Expr RSQ RPAR                {$$ = criar_no("ParseArgs","");aux = criar_no("Id", $3); criar_filhos($$, aux);criar_irmao(aux, $5);}
         | PARSEINT LPAR error RPAR                           {$$ = NULL;print_tree=0;}
      
 
