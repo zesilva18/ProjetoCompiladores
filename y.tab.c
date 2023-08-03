@@ -123,11 +123,7 @@ void criar_filhos(ast_tree *root, ast_tree *filho)
         return;
     }
 
-    if (root->filho == NULL)
-    {
-        root->filho = filho;
-    }
-    else
+    if (root->filho != NULL)
     {
         ast_tree *aux = root->filho;
         while (aux->irmao != NULL)
@@ -135,6 +131,10 @@ void criar_filhos(ast_tree *root, ast_tree *filho)
             aux = aux->irmao;
         }
         aux->irmao = filho;
+    }
+    else
+    {
+        root->filho = filho;
     }
     filho->pai = root;
 }

@@ -54,11 +54,7 @@ void criar_filhos(ast_tree *root, ast_tree *filho)
         return;
     }
 
-    if (root->filho == NULL)
-    {
-        root->filho = filho;
-    }
-    else
+    if (root->filho != NULL)
     {
         ast_tree *aux = root->filho;
         while (aux->irmao != NULL)
@@ -67,14 +63,15 @@ void criar_filhos(ast_tree *root, ast_tree *filho)
         }
         aux->irmao = filho;
     }
+    else
+    {
+        root->filho = filho;
+    }
     filho->pai = root;
 }
 
 void criar_irmao(ast_tree *irmao, ast_tree *newirmao) { //adicionar irmaos
-    if (newirmao == NULL) {
-        return;
-    }
-    if (irmao == NULL) {
+    if (newirmao == NULL || irmao == NULL) {
         return;
     }
 
@@ -109,7 +106,7 @@ void printar_arvore(ast_tree *tree, int n_pontos)
             printf("\n");
         }
     }
-    if (tree->filho != NULL)
+    if (tree->filho != NULL) //funcao recursiva para percorrer a arvore
     {
         printar_arvore(tree->filho, n_pontos + 2);
     }
@@ -121,7 +118,7 @@ void printar_arvore(ast_tree *tree, int n_pontos)
 
 //create function to free tree 
 
-void free_tree(ast_tree *tree)
+void free_tree(ast_tree *tree) //funcao para libertar a arvore
 {
     if (tree == NULL)
     {
@@ -140,7 +137,7 @@ void free_tree(ast_tree *tree)
 
 void mantertipo(ast_tree* no,char* tipo){
         ast_tree* auxiliar = NULL;
-        for (ast_tree *atual = no; atual; atual = atual->irmao){
+        for (ast_tree *atual = no; atual; atual = atual->irmao){ //percorre os irmaos do no
             auxiliar=criar_no(tipo, "");
             auxiliar->irmao=atual->filho;
             atual->filho=auxiliar;
@@ -192,9 +189,12 @@ Program: CLASS ID LBRACE ProgramAux RBRACE                   {root = criar_no("P
         ;
         
 
-ProgramAux: 									     {$$=NULL;}
+ProgramAux: 									             {$$=NULL;}
+
           | MethodDecl ProgramAux                            {$$ = $1;criar_irmao($$, $2);}
+
           | FieldDecl ProgramAux                             {$$ = $1;criar_irmao($$, $2);}
+
           | SEMICOLON ProgramAux                             {$$ = $2;}
           
 
@@ -203,6 +203,7 @@ MethodDecl: PUBLIC STATIC MethodHeader MethodBody            {$$ = criar_no("Met
 
   
 FieldDecl: PUBLIC STATIC tipo ID FieldDeclAux SEMICOLON      {$$ = criar_no("FieldDecl", "");criar_filhos($$,$3);criar_filhos($$, criar_no("Id", $4));mantertipo($5, $3->tipo);criar_irmao($$, $5);}
+
         | error SEMICOLON                                    {$$ = NULL;print_tree=0;}
         
 
@@ -212,17 +213,21 @@ FieldDeclAux: COMMA ID FieldDeclAux                          {$$ = criar_no("Fie
             |                                                {$$ = NULL;}                                     
             
 tipo: INT                                                    {$$ = criar_no("Int", "");}
+
     | DOUBLE                                                 {$$ = criar_no("Double", "");}
+
     | BOOL                                                   {$$ = criar_no("Bool", "");}             
     
 
 MethodHeader: tipo ID LPAR FormalParams RPAR                 {$$ = criar_no("MethodHeader","");methodParams = criar_no("MethodParams","");criar_filhos($$,$1);criar_filhos($$,criar_no("Id", $2));criar_filhos($$, methodParams);criar_filhos(methodParams,$4);}
+
         | VOID ID LPAR FormalParams RPAR                     {$$ = criar_no("MethodHeader","");methodParams = criar_no("MethodParams","");criar_filhos($$,criar_no("Void", ""));criar_filhos($$,criar_no("Id", $2));criar_filhos($$, methodParams);criar_filhos(methodParams,$4);}
                                                                
 
 FormalParams: tipo ID FormalParamsAux                        {$$ = criar_no("ParamDecl","");criar_filhos($$,$1);criar_filhos($$,criar_no("Id", $2));criar_irmao($$,$3);}
                                                                             
             | STRING LSQ RSQ ID                              {$$ = criar_no("ParamDecl","");criar_filhos($$,criar_no("StringArray",""));criar_filhos($$,criar_no("Id", $4));}
+
             |                                                {$$ = NULL;}
             
             
@@ -238,7 +243,9 @@ MethodBody: LBRACE MethodBodyAux RBRACE                      {$$ = criar_no("Met
 
 
 MethodBodyAux: Statement MethodBodyAux                       {if($1 != NULL){$$ = $1; criar_irmao($$, $2);}else{$$ = $2;}}
+
              | VarDecl MethodBodyAux                         {$$ = $1; criar_irmao($$, $2);}
+
              |                                               {$$ = NULL;}
              
 
@@ -257,6 +264,7 @@ Statement:  LBRACE Statement StatementAux RBRACE	         {
                                                                 if($2 != NULL){
                                                                     count++;
                                                                 }
+
                                                                 temp = $3;
                                                                 while(temp != NULL){
                                                                     if(temp->tipo != NULL){
@@ -273,6 +281,7 @@ Statement:  LBRACE Statement StatementAux RBRACE	         {
                                                                 if(count <= 1){
                                                                     $$ = $2;
                                                                 }
+
                                                                 else {                                                                    
                                                                     $$ = criar_no("Block","");
                                                                     criar_filhos($$,$2);
@@ -284,6 +293,7 @@ Statement:  LBRACE Statement StatementAux RBRACE	         {
 
 		 | IF LPAR Expr RPAR Statement 					     {
                                                                 $$ = criar_no("If","");
+
                                                                 criar_filhos($$,$3);
                                                                 
                                                                 if($5 == NULL || strcmp($5->tipo,"Semicolon")==0){
@@ -301,15 +311,19 @@ Statement:  LBRACE Statement StatementAux RBRACE	         {
 
 		 | IF LPAR Expr RPAR Statement ELSE Statement 	     {
                                                                 $$ = criar_no("If","");
+
                                                                 criar_filhos($$,$3);
+
                                                                 if($5 == NULL || strcmp($5->tipo,"Semicolon")==0){
                                                                     criar_filhos($$,criar_no("Block",""));
-                                                                }else{
+                                                                }
+                                                                else{
                                                                     criar_filhos($$,$5);
                                                                 }
                                                                 if($7 == NULL || strcmp($7->tipo,"Semicolon")==0){
                                                                     criar_filhos($$,criar_no("Block",""));
-                                                                }else{
+                                                                }
+                                                                else{
                                                                     criar_filhos($$,$7);
                                                                 }
                                                                 
@@ -319,22 +333,33 @@ Statement:  LBRACE Statement StatementAux RBRACE	         {
 
 		 | WHILE LPAR Expr RPAR Statement 				     {
                                                                 $$ = criar_no("While","");
+
                                                                 criar_filhos($$,$3);
+
                                                                 if($5 == NULL || strcmp($5->tipo,"Semicolon")==0){
                                                                     criar_filhos($$,criar_no("Block",""));
-                                                                }else{
+                                                                }
+                                                                else{
                                                                     criar_filhos($$,$5);
                                                                 }
                                                             }
 		 
          | RETURN Expr SEMICOLON  						     {$$ = criar_no("Return","");criar_filhos($$,$2);}
+
 		 | RETURN SEMICOLON								     {$$ = criar_no("Return", "");}
+
 		 | MethodInvocation SEMICOLON 					     {$$ = $1;}
+
 		 | Assignment SEMICOLON 						     {$$ = criar_no("Assign","");criar_filhos($$,$1);}
+
 		 | ParseArgs SEMICOLON 							     {$$ = $1;}
+
 		 | SEMICOLON									     {$$ = criar_no("Semicolon","");}		
+
 		 | PRINT LPAR Expr RPAR SEMICOLON 				     {$$ = criar_no("Print","");criar_filhos($$,$3);}
+
 		 | PRINT LPAR STRLIT RPAR SEMICOLON 			     {$$ = criar_no("Print","");criar_filhos($$, criar_no("StrLit", $3));}
+
 		 | error SEMICOLON 								     {$$ = NULL;print_tree = 0;}
   
 
@@ -344,7 +369,9 @@ StatementAux: Statement StatementAux                         {$$ = $1;criar_irma
 
 
 MethodInvocation:  ID LPAR RPAR 					         {$$ = criar_no("Call", "");criar_filhos($$, criar_no("Id", $1));}
+
 				| ID LPAR MethodInvocationAux RPAR 		     {$$ = criar_no("Call", "");criar_filhos($$, criar_no("Id", $1));criar_filhos($$,$3);}
+
 				| ID LPAR error RPAR 					     {$$ = NULL;print_tree = 0;} //  nao recupera deste
 
 
@@ -359,41 +386,71 @@ Assignment: ID ASSIGN Expr                                   {$$ = criar_no("Id"
 
 
 ParseArgs: PARSEINT LPAR ID LSQ Expr RSQ RPAR                {$$ = criar_no("ParseArgs","");aux = criar_no("Id", $3); criar_filhos($$, aux);criar_irmao(aux, $5);}
+
         | PARSEINT LPAR error RPAR                           {$$ = NULL;print_tree=0;}
      
 
 Expr: ExprAux                                               {$$ = $1;}
+
     | Assignment                                            {$$ = criar_no("Assign","");criar_filhos($$,$1);}
 
 
 ExprAux: ExprAux PLUS ExprAux                               {$$ = criar_no("Add","");criar_filhos($$,$1);criar_irmao($1,$3);}
+
     | ExprAux MINUS ExprAux                                 {$$ = criar_no("Sub","");criar_filhos($$,$1);criar_irmao($1,$3);}
+
     | ExprAux STAR ExprAux                                  {$$ = criar_no("Mul","");criar_filhos($$,$1);criar_irmao($1,$3);}
+
     | ExprAux DIV ExprAux                                   {$$ = criar_no("Div","");criar_filhos($$,$1);criar_irmao($1,$3);}
+
     | ExprAux MOD ExprAux                                   {$$ = criar_no("Mod","");criar_filhos($$,$1);criar_irmao($1,$3);}
+
     | ExprAux OR ExprAux                                    {$$ = criar_no("Or","");criar_filhos($$,$1);criar_irmao($1,$3);}
+
     | ExprAux XOR ExprAux                                   {$$ = criar_no("Xor","");criar_filhos($$,$1);criar_irmao($1,$3);}
+
     | ExprAux AND ExprAux                                   {$$ = criar_no("And","");criar_filhos($$,$1);criar_irmao($1,$3);}
+
     | ExprAux LSHIFT ExprAux                                {$$ = criar_no("Lshift","");criar_filhos($$,$1);criar_irmao($1,$3);}
+
     | ExprAux RSHIFT ExprAux                                {$$ = criar_no("Rshift","");criar_filhos($$,$1);criar_irmao($1,$3);}
+
     | ExprAux EQ ExprAux                                    {$$ = criar_no("Eq","");criar_filhos($$,$1);criar_irmao($1,$3);}
+
     | ExprAux NE ExprAux                                    {$$ = criar_no("Ne","");criar_filhos($$,$1);criar_irmao($1,$3);}
+
     | ExprAux LT ExprAux                                    {$$ = criar_no("Lt","");criar_filhos($$,$1);criar_irmao($1,$3);}
+
     | ExprAux GT ExprAux                                    {$$ = criar_no("Gt","");criar_filhos($$,$1);criar_irmao($1,$3);}
+
     | ExprAux LE ExprAux                                    {$$ = criar_no("Le","");criar_filhos($$,$1);criar_irmao($1,$3);}
+
     | ExprAux GE ExprAux                                    {$$ = criar_no("Ge","");criar_filhos($$,$1);criar_irmao($1,$3);}
+
     | MINUS ExprAux %prec NOT                               {$$ = criar_no("Minus","");criar_filhos($$,$2);}
+
     | NOT ExprAux                                           {$$ = criar_no("Not","");criar_filhos($$,$2);}
+
     | PLUS ExprAux  %prec NOT                               {$$ = criar_no("Plus","");criar_filhos($$,$2);}
+
     | LPAR Expr RPAR                                        {$$ = $2;}
+
     | ID                                                    {$$ = criar_no("Id",$1);}
+
     | ID DOTLENGTH                                          {$$ = criar_no("Length","");criar_filhos($$,criar_no("Id",$1));}
+
     | INTLIT                                                {$$ = criar_no("DecLit",$1);}
+
     | REALLIT                                               {$$ = criar_no("RealLit",$1);}
+
     | BOOLLIT                                               {$$ = criar_no("BoolLit",$1);}
+
     | MethodInvocation                                      {$$ = $1;}
+
     | ParseArgs                                             {$$ = $1;}
+
     | LPAR error RPAR                                       {$$ = NULL;print_tree=0;}
+
     
 
 %%
