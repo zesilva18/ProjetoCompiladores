@@ -22,13 +22,12 @@ reserved "switch"|"assert"|"default"|"package"|"finally"|"float"|"implements"|"i
 
 
 exponte                 (e|E)("+"|"-")?([0-9]|[0-9]["_"0-9]*[0-9])+
+
 reallit					(([0-9]|[0-9]["_"0-9]*[0-9])+"."([0-9]|[0-9]["_"0-9]*[0-9])*{exponte}?)|(([0-9]|[0-9]["_"0-9]*[0-9])+{exponte})|("."([0-9]|[0-9]["_"0-9]*[0-9])+{exponte}?)
 
-%X COMMENT STRLLIT SINGLE_LINE_COMMENT
+%X COMENTARIOS STRINGS SL_COMMENT
 
 %%  
-
-{reserved}                {coluna += yyleng;     if(flag == 1){printf("RESERVED(%s)\n", yytext);} else if(flag == 2){return (RESERVED);}  }
 
 "true"|"false"              {coluna += yyleng;     if(flag == 1){printf("BOOLLIT(%s)\n", yytext);}  else if (flag == 2){yylval.string=(char*)strdup(yytext);return(BOOLLIT);}coluna += yyleng;}
 "&&"                        {coluna += yyleng;     if(flag == 1){printf("AND\n");}                  else if (flag == 2){return(AND);}       }
@@ -75,35 +74,39 @@ reallit					(([0-9]|[0-9]["_"0-9]*[0-9])+"."([0-9]|[0-9]["_"0-9]*[0-9])*{exponte
 "while"                     {coluna += yyleng;     if(flag == 1){printf("WHILE\n");}                else if (flag == 2){return(WHILE);}     }
 
 
+          
+
+\"                           {coluna_aux = coluna; coluna += 1; linha_aux = yylineno; BEGIN STRINGS; buffer[0] = '\0'; error = 0;}
+<STRINGS>[^\\"\r\n]*         {coluna+=yyleng; strcat(buffer, yytext);}
+<STRINGS>\\f                 {coluna+=yyleng; strcat(buffer, yytext);}
+<STRINGS>\\n                 {coluna+=yyleng; strcat(buffer, yytext);}
+<STRINGS>\\t                 {coluna+=yyleng; strcat(buffer, yytext);}
+<STRINGS>\\r                 {coluna+=yyleng; strcat(buffer, yytext);}
+<STRINGS>\\[\\"]             {coluna+=yyleng; strcat(buffer, yytext);}
+<STRINGS>\"                  {coluna+=yyleng; BEGIN 0;if (error!=1){ if(flag==1) {printf("STRLLIT(\"%s\")\n", buffer);} else if (flag == 2) {buffer_envio[0] = '\"';strcat(buffer_envio,buffer);strcat(buffer_envio,"\"");yylval.string = (char *)strdup(buffer_envio); bzero(buffer_envio,sizeof(buffer_envio));return(STRLIT);}}}
+<STRINGS>\\.|\\              {error=1; if (yytext[1] != '\r') {printf("Line %d, col %d: invalid escape sequence (%s)\n", yylineno, coluna, yytext); coluna+=yyleng;} else {printf("Line %d, col %d: invalid escape sequence (\\)\n", yylineno, coluna); coluna+=yyleng;}}
+<STRINGS>{barras}           {error=1; printf("Line %d, col %d: unterminated string literal\n", linha_aux, coluna_aux); yylineno++; coluna=1; coluna_aux=0;buffer[0] = '\0';BEGIN 0;}
+<STRINGS><<EOF>>             {error=1; printf("Line %d, col %d: unterminated string literal\n", linha_aux, coluna_aux); yylineno++; coluna=1; coluna_aux=0;buffer[0] = '\0'; BEGIN 0;}
+
+{reserved}                {coluna += yyleng;     if(flag == 1){printf("RESERVED(%s)\n", yytext);} else if(flag == 2){return (RESERVED);}  }
+
 [A-Za-z_\$][0-9A-Za-z_\$]*                        {coluna += yyleng; if(flag == 1){printf("ID(%s)\n", yytext);}           else if (flag == 2){yylval.string=(char*)strdup(yytext);return(ID);}}
 
 {reallit}                   {coluna += yyleng; if(flag == 1){printf("REALLIT(%s)\n", yytext);}      else if (flag == 2){yylval.string=(char*)strdup(yytext);return(REALLIT);}}
 
-[0-9]|[1-9]["_"0-9]*[0-9]                    {coluna += yyleng; if(flag == 1){printf("INTLIT(%s)\n", yytext);}       else if (flag == 2){yylval.string=(char*)strdup(yytext);return(INTLIT);}}             
+[0-9]|[1-9]["_"0-9]*[0-9]                    {coluna += yyleng; if(flag == 1){printf("INTLIT(%s)\n", yytext);}       else if (flag == 2){yylval.string=(char*)strdup(yytext);return(INTLIT);}}   
 
+"//"                           {BEGIN SL_COMMENT;coluna = 1;yylineno++;}
+<SL_COMMENT>{barras} {BEGIN 0;}
+<SL_COMMENT><<EOF>>   {BEGIN 0;}
+<SL_COMMENT>.         ;
 
-"//"                           {BEGIN SINGLE_LINE_COMMENT;coluna = 1;yylineno++;}
-<SINGLE_LINE_COMMENT>{barras} {BEGIN 0;}
-<SINGLE_LINE_COMMENT><<EOF>>   {BEGIN 0;}
-<SINGLE_LINE_COMMENT>.         ;
+"/""*"                      {linha_aux = yylineno;coluna_aux=coluna;linha_aux_2 = 0;coluna += 2;BEGIN(COMENTARIOS);}
+<COMENTARIOS><<EOF>>            {yylineno += linha_aux_2; printf("Line %d, col %d: unterminated comment\n", linha_aux, coluna_aux); BEGIN(0);coluna += yyleng;}
+<COMENTARIOS>"*""/"             {yylineno += linha_aux_2; coluna += 2; BEGIN(0);}
+<COMENTARIOS>{barras}          {linha_aux_2++;           coluna = 1;}
+<COMENTARIOS>.                  {coluna += yyleng;}
 
-"/""*"                      {linha_aux = yylineno;coluna_aux=coluna;linha_aux_2 = 0;coluna += 2;BEGIN(COMMENT);}
-<COMMENT><<EOF>>            {yylineno += linha_aux_2; printf("Line %d, col %d: unterminated comment\n", linha_aux, coluna_aux); BEGIN(0);coluna += yyleng;}
-<COMMENT>"*""/"             {yylineno += linha_aux_2; coluna += 2; BEGIN(0);}
-<COMMENT>{barras}          {linha_aux_2++;           coluna = 1;}
-<COMMENT>.                  {coluna += yyleng;}
-
-\"                           {coluna_aux = coluna; coluna += 1; linha_aux = yylineno; BEGIN STRLLIT; buffer[0] = '\0'; error = 0;}
-<STRLLIT>[^\\"\r\n]*         {coluna+=yyleng; strcat(buffer, yytext);}
-<STRLLIT>\\f                 {coluna+=yyleng; strcat(buffer, yytext);}
-<STRLLIT>\\n                 {coluna+=yyleng; strcat(buffer, yytext);}
-<STRLLIT>\\t                 {coluna+=yyleng; strcat(buffer, yytext);}
-<STRLLIT>\\r                 {coluna+=yyleng; strcat(buffer, yytext);}
-<STRLLIT>\\[\\"]             {coluna+=yyleng; strcat(buffer, yytext);}
-<STRLLIT>\"                  {coluna+=yyleng; BEGIN 0;if (error!=1){ if(flag==1) {printf("STRLLIT(\"%s\")\n", buffer);} else if (flag == 2) {buffer_envio[0] = '\"';strcat(buffer_envio,buffer);strcat(buffer_envio,"\"");yylval.string = (char *)strdup(buffer_envio); bzero(buffer_envio,sizeof(buffer_envio));return(STRLIT);}}}
-<STRLLIT>\\.|\\              {error=1; if (yytext[1] != '\r') {printf("Line %d, col %d: invalid escape sequence (%s)\n", yylineno, coluna, yytext); coluna+=yyleng;} else {printf("Line %d, col %d: invalid escape sequence (\\)\n", yylineno, coluna); coluna+=yyleng;}}
-<STRLLIT>{barras}           {error=1; printf("Line %d, col %d: unterminated string literal\n", linha_aux, coluna_aux); yylineno++; coluna=1; coluna_aux=0;buffer[0] = '\0';BEGIN 0;}
-<STRLLIT><<EOF>>             {error=1; printf("Line %d, col %d: unterminated string literal\n", linha_aux, coluna_aux); yylineno++; coluna=1; coluna_aux=0;buffer[0] = '\0'; BEGIN 0;}
 
 "\f"|"\t"                    {coluna += yyleng;}
 " "                      {coluna += yyleng;}
