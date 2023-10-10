@@ -372,7 +372,7 @@ MethodInvocation:  ID LPAR RPAR 					         {$$ = criar_no("Call", "");criar_f
 
 				| ID LPAR MethodInvocationAux RPAR 		     {$$ = criar_no("Call", "");criar_filhos($$, criar_no("Id", $1));criar_filhos($$,$3);}
 
-				| ID LPAR error RPAR 					     {$$ = NULL;print_tree = 0;} //  nao recupera deste
+				| ID LPAR error RPAR 					     {$$ = NULL;print_tree = 0;}
 
 
 MethodInvocationAux: Expr MethodInvocationAux_2			     {$$ = $1;criar_irmao($$,$2);}
@@ -459,21 +459,17 @@ ExprAux: ExprAux PLUS ExprAux                               {$$ = criar_no("Add"
 
 int main(int argc, char *argv[]){
 	if(strcmp(argv[1],"-e1") == 0){
-        /* Analise Lexical : Mostra so os erros */
 		flag=0;
         yylex();
     }else if(strcmp(argv[1],"-l") == 0){
-        /* Analise Lexical : Mostra os erros e os tokens */
         flag=1;
         yylex();
     }
     if(strcmp(argv[1],"-e2") == 0){
-        /* Analise Sintatica : Mostra so os erros */
         flag=2;
         yyparse();
     }
     else if(strcmp(argv[1],"-t") == 0){
-        /* Analise Sintatica : Mostra os erros e a arvore */
         flag=2;
         yyparse();
         if(print_tree == 1){
